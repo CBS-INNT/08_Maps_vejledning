@@ -170,6 +170,7 @@ import GlobalStyles from "../style/GlobalStyles";
 - `const [latitude, setLatitude] = useState('');`
 
 3. Lav en funktion til at validere koordinater (skal være tal og inden for gyldigt område)
+
 **Tip**
 ```javascript
   const isValidCoord = (lat, lon) =>
@@ -222,8 +223,8 @@ Fedt det var hele `addAndSaveMarker` funktionen
 5. Nu skal vi lave vores `return` statement
 5.1. Først laver vi en konstant variabel (før `return`), der får tildelt værdien af GlobalStyles.home: `const styles = GlobalStyles.home;`
 5.2. Download `logo.png` her fra repo og indsæt det i dine `assests`
-5.3. Indsæt følgende i din `return`. Vi bruger `SafeAreaView` for at sikre at indholdet er indenfor skærmen. 
-   ```javascript
+5.3. Indsæt følgende i din `return`. Vi bruger `SafeAreaView` for at sikre at indholdet er indenfor skærmen.
+```javascript
    return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#fff" }]}>
       <View style={styles.bcg}>
@@ -237,16 +238,16 @@ Fedt det var hele `addAndSaveMarker` funktionen
         <TextInput
           style={styles.input}
           value={latitude}
-          onChangeText={???}
-          placeholder="???"
+          onChangeText={setLatitude}
+          placeholder="latitude (-90 to 90)"
           keyboardType="decimal-pad"
           returnKeyType="next"
         />
         <TextInput
           style={styles.input}
           value={longitude}
-          onChangeText={???}
-          placeholder="???"
+          onChangeText={setLongitude}
+          placeholder="longitude (-180 to 180)"
           keyboardType="decimal-pad"
         />
 
@@ -257,5 +258,128 @@ Fedt det var hele `addAndSaveMarker` funktionen
       </View>
     </???>
   );
-  ```
-Din `Home.js` skulle nu gerne være done.
+```
+
+Din Home.js skulle nu gerne være done.
+
+## Map.js
+I `Map.js` vil vi nu gerne skabe vores map. 
+1. Start med imports:
+```javascript
+import * as Location from "expo-location";
+import { useState, useCallback } from "react";
+import { ActivityIndicator } from "react-native";
+import { View } from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+import GlobalStyles from "../style/GlobalStyles";
+```
+
+2. Lav nu 3 `const` med `useState` i export funktionen
+  - `markers` med tomt array
+  - `loading` med `useState(true)`
+  - `initialRegion` med 4 værdier `latitude:???`, `longitude:???`, `latitudeDelta: 0.0922`, `longitudeDelta: 0.0421`. Sæt dine longitude og latitude værdier til det som dit inital map skal vise - f.eks. KBH
+
+3. Lav en konstant variabel, der får tildelt værdien af GlobalStyles.map
+4. Hent markørerne fra AsyncStorage. Den skal bruge en `try - catch` funktionalitet som afventer vores `markers` fra vores `AsyncStorage`. 
+```javascript
+const getMarkers = async () => {
+    ??? {
+      const raw = await ???.getItem("markers");
+      const list = raw ? JSON.parse(raw) : [];
+      setMarkers(list);
+
+      // Flyt kortet til den senest gemte markør
+      const latest = list.at(-1);
+      if (latest) {
+        setRegion((r) => ({
+          ...r,
+          ???: latest.latitude,
+          ???: latest.longitude,
+        }));
+      }
+    } ??? (e) {
+      console.error("Error retrieving markers", e);
+    }
+  };
+```
+
+5. (valgfrit) Det er også muligt at hente brugerens egen lokation med `getLocation`. Du skal lige give tilladelse til dette. 
+```javascript
+  const ??? = async () => {
+    const { status } = ??? Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") return;
+    const { coords } = await Location.getCurrentPositionAsync({});
+    setRegion((r) => ({
+      ...r,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    }));
+  };
+```
+
+6. Lav en `useFocusEffect` funktion, der henter både markører og lokation parallelt, og slår loading fra, når de er færdige.
+```javascript
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      Promise.all([getMarkers(), getLocation()]).finally(() =>
+        setLoading(false)
+      );
+    }, [])
+  );
+```
+Koden gør, at hver gang skærmen bliver vist, starter en "loading"-tilstand, henter både markører og lokation parallelt, og slår loading fra, når de er færdige
+
+7. Lav en loader-indikation
+```javascript
+if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+```
+
+8. Nu skal du lave din `return`, som viser et kort med brugerens position og alle gemte markører. Brugeren kan tilføje en ny markør ved at long-presse på kortet, hvorefter markøren gemmes både i appens state og i AsyncStorage. Kortets position styres af region, som opdateres, når brugeren flytter rundt på kortet.
+```javascript
+return (
+    <View style={styles.container}>
+      <MapView
+        style={styles.map}
+        region={region} // styrer kortets position
+        onRegionChangeComplete={setRegion}
+        showsUserLocation
+        // Mulighed: long-press for at tilføje ny markør direkte på kortet
+        onLongPress={(e) => {
+          const { latitude, longitude } = e.nativeEvent.coordinate;
+          const ??? = {
+            id: Date.now().toString(),
+            latitude,
+            longitude,
+            title: "Drop pin",
+          };
+          const next = [...markers, newMarker];
+          setMarkers(next);
+          AsyncStorage.setItem("markers", JSON.stringify(next));
+        }}
+      >
+        {/* Tegn alle markører på kortet */}
+        {markers.map((m) => (
+          <Marker
+            key={m.id ?? `${m.latitude},${m.longitude}`}
+            ???={{ latitude: m.latitude, longitude: m.longitude }}
+            title={m.title ?? "Marker"}
+            tracksViewChanges={false}
+            pinColor="#FF0000"
+          />
+        ))}
+      </???>
+    </View>
+  );
+```
+Årsagen til at vi ikke bruger `SafeAreaView` her i Map.js er fordi vi ønsker at kortet skal gå helt ud til kanterne. 
+
+Nu virker din Map.js også, og hele app'en skulle gerne fungerer. 
