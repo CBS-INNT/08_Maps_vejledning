@@ -9,19 +9,22 @@ https://github.com/react-native-maps/react-native-maps
 2. Husk at skrive `cd 08_Maps` bagefter inden du går videre.
 3. Kopiere derefter følgende ind i din `package.json`:
 ```json
-  "dependencies": {
-      "@react-native-async-storage/async-storage": "2.2.0",
-      "@react-navigation/bottom-tabs": "^7.4.7",
-      "expo": "~54.0.10",
-      "expo-constants": "~18.0.9",
-      "expo-linear-gradient": "~15.0.7",
-      "expo-location": "~19.0.7",
-      "expo-status-bar": "~3.0.8",
-      "react": "19.1.0",
-      "react-native": "0.81.4",
-      "react-native-maps": "1.20.1",
-      "react-native-vector-icons": "^10.3.0"
-    },
+"dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^7.4.7",
+    "expo": "^57.0.24",
+    "expo-constants": "~57.0.19",
+    "expo-font": "~57.0.4",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-location": "~57.0.19",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-maps": "1.27.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0"
+  },
 ```
 4. Kør `npm install`
 
